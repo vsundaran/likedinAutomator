@@ -82,6 +82,15 @@ mongoose.connect(process.env.MONGODB_URI, {
   // Start scheduler only if not in test environment
   if (process.env.NODE_ENV !== 'test') {
     require('./services/SchedulerService').start();
+    // this.clientId = process.env.LINKEDIN_CLIENT_ID;
+    // this.clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+    // this.redirectUri = process.env.LINKEDIN_REDIRECT_URI;
+    // this.accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
+
+    // console.log('LINKEDIN_CLIENT_ID:', this.clientId);
+    // console.log('LINKEDIN_CLIENT_SECRET:', this.clientSecret);
+    // console.log('LINKEDIN_REDIRECT_URI:', this.redirectUri);
+    // console.log('LINKEDIN_ACCESS_TOKEN:', this.accessToken);
   }
 })
 .catch(err => {
