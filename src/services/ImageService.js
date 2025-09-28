@@ -10,9 +10,10 @@ class ImageService {
     const searchTerms = [
       "coding",
       "coding background",
+      "software",
+      "software engineering",
       "software development",
       "software development company",
-      "Web developement",
     ];
 
     const searchTerm =
