@@ -8,12 +8,11 @@ class ImageService {
 
   async fetchImage(keyword) {
     const searchTerms = [
-      "react development",
-      "javascript code",
-      "web development",
-      "programming",
-      "computer science",
-      "Testing",
+      "coding",
+      "coding background",
+      "software development",
+      "software development company",
+      "Web developement",
     ];
 
     const searchTerm =

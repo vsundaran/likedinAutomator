@@ -11,11 +11,11 @@ class SchedulerService {
   }
 
   start() {
-    this.executePostingCycle();
+    // this.executePostingCycle();
     // Run every 2 hours
-    // cron.schedule("0 */2 * * *", () => {
-    //   this.executePostingCycle();
-    // });
+    cron.schedule("* * * * *", () => {
+      this.executePostingCycle();
+    });
 
     logger.info("Scheduler started - will run every 2 hours");
   }
