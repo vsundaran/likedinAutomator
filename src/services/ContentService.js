@@ -6,14 +6,96 @@ class ContentService {
   constructor() {
     this.openaiApiKey = process.env.OPENAI_API_KEY;
     this.topics = [
+      // 🌱 React Basics
+      "Introduction to React and Why It’s Popular",
+      "Understanding JSX in React",
+      "React Components: Functional vs Class",
+      "Props in React: Passing Data Between Components",
+      "React State: The Basics",
+      "Event Handling in React",
+      "Conditional Rendering in React",
+      "Lists and Keys in React",
+      "Controlled vs Uncontrolled Components",
+      "React Forms Basics",
+
+      // ⚡ React Core Concepts
       "React Hooks Deep Dive",
-      "React Performance Optimization",
-      "React Error Handling Strategies",
+      "useState and useEffect Explained",
+      "useRef and useMemo in Real Projects",
+      "useReducer vs useState: When to Use What",
+      "Custom Hooks in React",
+      "React Context API Explained",
       "React Component Lifecycles",
+      "React Error Handling Strategies",
+      "React Portals and When to Use Them",
+      "Fragments in React",
+
+      // 🎯 React Intermediate Topics
       "React State Management",
-      "React Best Practices",
-      "React Testing Strategies",
+      "Prop Drilling and How to Avoid It",
+      "React Performance Optimization",
+      "Code Splitting and Lazy Loading in React",
+      "React Suspense and Concurrent Features",
+      "Memoization in React (React.memo, useMemo, useCallback)",
+      "Forms in React (Formik, React Hook Form, Zod)",
+      "Accessibility in React (a11y Best Practices)",
+      "React Routing with React Router",
+      "Authentication in React Apps",
+
+      // 🚀 Advanced React
+      "Advanced React Patterns (HOCs, Render Props, Compound Components)",
+      "Context API vs Redux vs Zustand vs Recoil",
+      "Server-Side Rendering (SSR) with Next.js",
+      "Static Site Generation (SSG) and ISR",
+      "Microfrontends with React",
+      "React with GraphQL (Apollo, Relay)",
       "React with TypeScript",
+      "Building Design Systems with React & Storybook",
+      "React and Browser APIs (IntersectionObserver, WebRTC, etc.)",
+      "Debugging and Profiling React Apps",
+
+      // 🧪 Testing & Quality
+      "React Testing Strategies",
+      "Unit Testing React Components (Jest)",
+      "Integration Testing with React Testing Library",
+      "End-to-End Testing with Cypress and Playwright",
+      "Snapshot Testing in React",
+      "CI/CD for React Projects",
+
+      // 🎨 Styling
+      "Styling React Apps (CSS Modules, Styled Components, Tailwind)",
+      "CSS-in-JS vs Utility-First CSS",
+      "Responsive Design in React",
+      "Dark Mode in React Apps",
+
+      // 🔐 Security & Performance
+      "Security Best Practices in React Apps",
+      "Authentication & Authorization in React",
+      "Web Security in Frontend (XSS, CSRF, CORS)",
+      "Performance Optimization in React Apps",
+      "Bundle Analysis and Tree Shaking",
+      "Caching Strategies in React Apps",
+
+      // 🌍 Ecosystem & Real-World Apps
+      "Progressive Web Apps (PWAs) with React",
+      "Internationalization (i18n) in React",
+      "React Native for Mobile Development",
+      "Integrating APIs in React (REST & GraphQL)",
+      "State Machines in React (XState Basics)",
+      "Building Offline-First React Apps",
+      "React with WebSockets (Real-Time Apps)",
+
+      // 🏗️ Engineering & Mastery
+      "Clean Code Practices in React",
+      "System Design for Frontend Engineers",
+      "Scalable Folder Structures in React Projects",
+      "Monorepos for React Apps (Nx, Turborepo)",
+      "TypeScript Deep Dive for React Developers",
+      "Debugging Complex React Issues",
+      "Handling Large-Scale React Applications",
+      "Collaboration with Designers (Figma → React workflows)",
+      "Best Practices for Code Reviews in Frontend",
+      "Interview Preparation for React Developers",
     ];
   }
 
@@ -40,7 +122,13 @@ class ContentService {
           },
           {
             role: "user",
-            content: `Create a LinkedIn post about ${topic}. Include:\n1. Engaging title\n2. Technical insights\n3. Code example (if applicable)\n4. Best practices\n5. 3-5 relevant hashtags\n\nKeep it under 1300 characters. Don't include the charector count`,
+            content: `Create a LinkedIn post about ${topic}. The post should include:  
+1. An engaging and attention-grabbing title  
+2. Clear technical insights explained in a professional yet approachable tone  
+3. Practical examples or use cases (if applicable)  
+4. Actionable best practices or tips  
+5. 3–5 relevant and trending hashtags  
+Keep the post concise, impactful, and under 1300 characters. Do not mention or include the character count in the response.`,
           },
         ],
         max_tokens: 500,
