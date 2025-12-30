@@ -7,9 +7,7 @@ function SendCode() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const code = searchParams.get("code");
-  const state = searchParams.get("state");
-
-  const isLinedInCode = location.pathname.includes("linkedin");
+  // Unused variables removed to satisfy strict TSC
   const isYouTubeCode = location.pathname.includes("youtube");
 
   const header = {
