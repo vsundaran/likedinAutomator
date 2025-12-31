@@ -4,7 +4,9 @@ const bcrypt = require("bcryptjs");
 const router = express.Router();
 
 let User = require("../models/User");
+const Niche = require("../models/Niche");
 const authenticateToken = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
 // Validate required environment variables
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-for-dev-only";
@@ -186,6 +188,77 @@ router.get("/verify", authenticateToken, (req, res) => {
 // Logout endpoint (client-side token removal)
 router.post("/logout", authenticateToken, (req, res) => {
   res.json({ message: "Logout successful" });
+});
+
+// Update avatar
+router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    await User.findByIdAndUpdate(req.user.id, { avatarUrl });
+
+    res.json({ message: "Avatar uploaded successfully", avatarUrl });
+  } catch (error) {
+    console.error("Avatar upload error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update niche
+router.post("/niche", authenticateToken, async (req, res) => {
+  try {
+    const { nicheId } = req.body;
+    if (!nicheId) {
+      return res.status(400).json({ message: "Niche ID required" });
+    }
+
+    const niche = await Niche.findById(nicheId);
+    if (!niche) {
+      return res.status(404).json({ message: "Niche not found" });
+    }
+
+    await User.findByIdAndUpdate(req.user.id, { nicheId });
+    res.json({ message: "Niche updated successfully" });
+  } catch (error) {
+    console.error("Niche update error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update bank details
+router.post("/bank-details", authenticateToken, async (req, res) => {
+  try {
+    const { accountNumber, ifscCode, accountHolderName, bankName } = req.body;
+    if (!accountNumber || !ifscCode || !accountHolderName || !bankName) {
+      return res.status(400).json({ message: "All bank details required" });
+    }
+
+    await User.findByIdAndUpdate(req.user.id, {
+      bankDetails: { accountNumber, ifscCode, accountHolderName, bankName },
+    });
+
+    res.json({ message: "Bank details updated successfully" });
+  } catch (error) {
+    console.error("Bank details update error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get profile details
+router.get("/profile", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate("nicheId");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ user });
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 module.exports = router;

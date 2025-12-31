@@ -1,10 +1,12 @@
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
+import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/logo.svg';
 
 const menuItems = [
@@ -17,6 +19,12 @@ const menuItems = [
 export function Sidebar() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { logout } = useAuth();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     return (
         <Box
@@ -76,13 +84,26 @@ export function Sidebar() {
             </List>
 
             <Divider />
-            <List sx={{ px: 2, mb: 2 }}>
+            <List sx={{ px: 2, mb: 1 }}>
                 <ListItem disablePadding>
                     <ListItemButton sx={{ borderRadius: '12px' }}>
                         <ListItemIcon sx={{ minWidth: 40 }}>
                             <SettingsIcon />
                         </ListItemIcon>
                         <ListItemText primary="Settings" primaryTypographyProps={{ fontWeight: 500 }} />
+                    </ListItemButton>
+                </ListItem>
+            </List>
+            <List sx={{ px: 2, mb: 2 }}>
+                <ListItem disablePadding>
+                    <ListItemButton
+                        onClick={handleLogout}
+                        sx={{ borderRadius: '12px', color: 'error.main' }}
+                    >
+                        <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>
+                            <LogoutIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Logout" primaryTypographyProps={{ fontWeight: 500 }} />
                     </ListItemButton>
                 </ListItem>
             </List>

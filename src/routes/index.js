@@ -7,15 +7,16 @@ const postRoutes = require("./posts");
 const healthRoutes = require("./health");
 const linkedinRoutes = require("./linkedin");
 const youtubeRoutes = require("./youtube");
+const nicheRoutes = require("./niche");
+const socialRoutes = require("./social");
 
 // Use routes
 router.use("/auth", authRoutes);
 router.use("/posts", postRoutes);
-
-// currently no special health routes, using app.js health check
 router.use("/health", healthRoutes);
-
 router.use("/linkedin", linkedinRoutes);
 router.use("/youtube", youtubeRoutes);
+router.use("/niche", nicheRoutes);
+router.use("/social", socialRoutes);
 
 module.exports = router;

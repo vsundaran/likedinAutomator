@@ -1,9 +1,11 @@
-import { Box, Typography, Container, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { useState, useRef } from 'react';
+import { Box, Typography, Container, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/atoms/AppCard';
 import { AppButton } from '../../components/atoms/AppButton';
+import { authApi } from '../../api/auth';
 
 const bestPractices = [
     'Clear frontal view of your face',
@@ -14,6 +16,40 @@ const bestPractices = [
 
 export default function UploadAvatarPage() {
     const navigate = useNavigate();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [file, setFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+            setPreviewUrl(URL.createObjectURL(selectedFile));
+            setError(null);
+        }
+    };
+
+    const handleUpload = async () => {
+        if (!file) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        try {
+            await authApi.updateAvatar(formData);
+            navigate('/dashboard');
+        } catch (err: any) {
+            console.error('Upload failed:', err);
+            setError(err.response?.data?.message || 'Failed to upload avatar. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <Container maxWidth="sm" sx={{ py: 8 }}>
@@ -24,8 +60,18 @@ export default function UploadAvatarPage() {
                 </Typography>
             </Box>
 
+            {error && <Alert severity="error" sx={{ mb: 4 }}>{error}</Alert>}
+
             <AppCard sx={{ p: 0, mb: 4 }}>
+                <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                />
                 <Box
+                    onClick={() => fileInputRef.current?.click()}
                     sx={{
                         py: 8,
                         px: 4,
@@ -39,8 +85,18 @@ export default function UploadAvatarPage() {
                         '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(91, 140, 255, 0.02)' },
                     }}
                 >
-                    <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h3" sx={{ fontSize: '18px', mb: 1 }}>Drag & Drop file here</Typography>
+                    {previewUrl ? (
+                        <Box
+                            component="img"
+                            src={previewUrl}
+                            sx={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', mb: 2 }}
+                        />
+                    ) : (
+                        <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    )}
+                    <Typography variant="h3" sx={{ fontSize: '18px', mb: 1 }}>
+                        {file ? file.name : 'Drag & Drop file here'}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">or click to browse from your computer</Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>Supported: JPG, PNG, WEBP (Max 5MB)</Typography>
                 </Box>
@@ -65,10 +121,11 @@ export default function UploadAvatarPage() {
                     variant="contained"
                     size="large"
                     fullWidth
-                    disabled
+                    disabled={!file || isLoading}
+                    onClick={handleUpload}
                     sx={{ py: 2 }}
                 >
-                    Continue to Dashboard
+                    {isLoading ? <CircularProgress size={24} /> : 'Continue to Dashboard'}
                 </AppButton>
                 <AppButton
                     variant="text"

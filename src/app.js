@@ -99,14 +99,23 @@ app.use("*", (req, res) => {
 // Error handling middleware (must be last)
 app.use(require("./middleware/errorHandler"));
 
+const MasterDataService = require("./services/MasterDataService");
+
 // Database connection
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
+
+    // Seed master data
+    try {
+      await MasterDataService.seedNiches();
+    } catch (seedError) {
+      console.error("Master data seeding failed:", seedError);
+    }
 
     // Start scheduler only if not in test environment
     if (process.env.NODE_ENV !== "test") {

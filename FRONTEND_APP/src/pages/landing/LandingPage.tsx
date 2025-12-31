@@ -5,6 +5,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import SecurityIcon from '@mui/icons-material/Security';
+import { useNavigate } from 'react-router-dom';
 import { AppButton } from '../../components/atoms/AppButton';
 import { FeatureCard } from '../../components/molecules/FeatureCard';
 import { AppCard } from '../../components/atoms/AppCard';
@@ -25,6 +26,8 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+    const navigate = useNavigate();
+
     return (
         <Box>
             {/* Hero Section */}
@@ -39,7 +42,12 @@ export default function LandingPage() {
                                 The all-in-one platform for affiliate marketers. Automate content, track earnings, and grow your presence across all social channels.
                             </Typography>
                             <Stack direction="row" spacing={2}>
-                                <AppButton variant="contained" size="large" sx={{ py: 2, px: 4 }}>
+                                <AppButton
+                                    variant="contained"
+                                    size="large"
+                                    sx={{ py: 2, px: 4 }}
+                                    onClick={() => navigate('/register')}
+                                >
                                     Start Free Trial
                                 </AppButton>
                                 <AppButton variant="outlined" size="large" sx={{ py: 2, px: 4 }}>
@@ -98,7 +106,7 @@ export default function LandingPage() {
                                         "{t.content}"
                                     </Typography>
                                     <Box>
-                                        <Typography variant="h3" sx={{ fontSize: '18px' }}>{t.name}</Typography>
+                                        <Typography variant="h2" sx={{ fontSize: '18px' }}>{t.name}</Typography>
                                         <Typography variant="body2" color="text.secondary">{t.role}</Typography>
                                     </Box>
                                 </AppCard>
@@ -137,6 +145,7 @@ export default function LandingPage() {
                                 py: 2,
                                 '&:hover': { bgcolor: '#f0f0f0' },
                             }}
+                            onClick={() => navigate('/register')}
                         >
                             Get Started for Free
                         </AppButton>
