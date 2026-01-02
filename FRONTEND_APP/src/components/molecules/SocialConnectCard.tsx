@@ -9,9 +9,10 @@ interface SocialConnectCardProps {
     description: string;
     isConnected?: boolean;
     onConnect?: () => void;
+    onDisconnect?: () => void;
 }
 
-export function SocialConnectCard({ platform, icon, description, isConnected, onConnect }: SocialConnectCardProps) {
+export function SocialConnectCard({ platform, icon, description, isConnected, onConnect, onDisconnect }: SocialConnectCardProps) {
     return (
         <AppCard sx={{ p: 3, textAlign: 'center' }}>
             <Stack spacing={2} alignItems="center">
@@ -27,10 +28,18 @@ export function SocialConnectCard({ platform, icon, description, isConnected, on
                 <AppButton
                     variant={isConnected ? 'outlined' : 'contained'}
                     fullWidth
-                    onClick={onConnect}
-                    sx={{ borderRadius: '8px' }}
+                    onClick={isConnected ? onDisconnect : onConnect}
+                    sx={{
+                        borderRadius: '8px',
+                        color: isConnected ? 'red' : 'white',
+                        borderColor: isConnected ? 'red' : 'white',
+                        // '&:hover': {
+                        //     borderColor: isConnected ? 'red' : 'white',
+                        //     bgcolor: isConnected ? 'red' : 'white',
+                        // }
+                    }}
                 >
-                    {isConnected ? 'Connected' : 'Connect'}
+                    {isConnected ? 'Disconnect' : 'Connect'}
                 </AppButton>
             </Stack>
         </AppCard>

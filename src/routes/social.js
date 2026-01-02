@@ -34,6 +34,7 @@ router.post("/connect", authenticateToken, async (req, res) => {
 // Get connected accounts
 router.get("/accounts", authenticateToken, async (req, res) => {
     try {
+        console.log(req.user)
         const accounts = await SocialAccount.find({ userId: req.user.id }).select("-accessToken -refreshToken");
         res.json(accounts);
     } catch (error) {

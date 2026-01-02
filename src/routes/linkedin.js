@@ -11,6 +11,7 @@ router.post(
   authenticateToken,
   async (req, res) => {
     const { code } = req.body;
+    console.log("Exchange code for access token");
     try {
       const accessTokenResp = await exchangeCodeForToken(code);
       const existingToken = await Token.findOne({ userId: req.user.id });
@@ -20,6 +21,7 @@ router.post(
         existingToken.linkedin.refreshToken = accessTokenResp.refresh_token || null;
         existingToken.linkedin.scope = accessTokenResp.scope;
         await existingToken.save();
+        console.log("Token updated successfully");
       } else {
         const newToken = new Token({
           userId: req.user.id,

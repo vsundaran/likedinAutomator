@@ -6,7 +6,7 @@ export function Footer() {
             <Container maxWidth="lg">
                 <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" spacing={2}>
                     <Typography variant="body2" color="text.secondary">
-                        © 2025 AffiliateAI. All rights reserved.
+                        © 2025 Vibe2EarnAI. All rights reserved.
                     </Typography>
                     <Stack direction="row" spacing={3}>
                         <Link href="#" color="text.secondary" underline="hover">Privacy Policy</Link>
