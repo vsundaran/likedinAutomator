@@ -25,7 +25,7 @@ export function SocialConnectCard({ platform, icon, description, isConnected, on
                 <Typography variant="body2" color="text.secondary" sx={{ minHeight: '40px' }}>
                     {description}
                 </Typography>
-                <AppButton
+                <AppButton disabled={platform !== 'LinkedIn'}
                     variant={isConnected ? 'outlined' : 'contained'}
                     fullWidth
                     onClick={isConnected ? onDisconnect : onConnect}
@@ -33,10 +33,9 @@ export function SocialConnectCard({ platform, icon, description, isConnected, on
                         borderRadius: '8px',
                         color: isConnected ? 'red' : 'white',
                         borderColor: isConnected ? 'red' : 'white',
-                        // '&:hover': {
-                        //     borderColor: isConnected ? 'red' : 'white',
-                        //     bgcolor: isConnected ? 'red' : 'white',
-                        // }
+                        '&:hover': {
+                            borderColor: isConnected ? 'red !important' : 'inherit !important',
+                        }
                     }}
                 >
                     {isConnected ? 'Disconnect' : 'Connect'}

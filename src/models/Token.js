@@ -43,6 +43,9 @@ const TokenSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+TokenSchema.index({ userId: 1 }, { unique: true });
+
 const Token = mongoose.model("Token", TokenSchema);
 
 module.exports = Token;

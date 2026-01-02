@@ -26,7 +26,7 @@ export function Navbar() {
                                 maxHeight: "50px",
                                 objectFit: "cover",
                                 width: "100%",
-                                minWidth: "180px"
+                                // minWidth: "180px"
                             }}
                         />
 
