@@ -19,6 +19,9 @@ const postSchema = new mongoose.Schema({
   imageUrl: {
     type: String
   },
+  videoUrl: {
+    type: String
+  },
   imageAlt: {
     type: String
   },
@@ -26,6 +29,9 @@ const postSchema = new mongoose.Schema({
     type: String
   },
   linkedInUrl: {
+    type: String
+  },
+  heygenVideoId: {
     type: String
   },
   status: {

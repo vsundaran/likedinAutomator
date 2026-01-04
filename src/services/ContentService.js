@@ -13,6 +13,26 @@ class ContentService {
       "React Performance",
     ];
   }
+  async getRandomTopic(nicheId) {
+    try {
+      if (!nicheId) {
+        return this.defaultTopics[Math.floor(Math.random() * this.defaultTopics.length)];
+      }
+
+      const Niche = require("../models/Niche");
+      const niche = await Niche.findById(nicheId);
+
+      if (!niche || !niche.topics || niche.topics.length === 0) {
+        return this.defaultTopics[Math.floor(Math.random() * this.defaultTopics.length)];
+      }
+
+      return niche.topics[Math.floor(Math.random() * niche.topics.length)];
+    } catch (error) {
+      console.error("Error getting random topic:", error);
+      return this.defaultTopics[Math.floor(Math.random() * this.defaultTopics.length)];
+    }
+  }
+
 
   generateContentHash(content) {
     return crypto.createHash("md5").update(content).digest("hex");
@@ -42,14 +62,17 @@ class ContentService {
           },
           {
             role: "user",
-            content: `Create a social media post about ${topic}. The post should include:  
-1. An engaging and attention-grabbing title  
-2. Clear insights explained in a professional yet approachable tone  
-3. Practical examples or use cases (if applicable)  
-4. Actionable best practices or tips  
-5. 3–5 relevant and trending hashtags  
-Keep the post concise, impactful, and under 1300 characters.`,
-          },
+            content: `Create a short-form video script about "${topic}" for YouTube Shorts and Instagram Reels.
+Requirements:
+- Start with a strong 2–3 second hook to stop scrolling
+- Deliver 1–2 clear, valuable insights in a simple, confident tone
+- Include a quick real-world example or use case (if relevant)
+- End with a clear CTA (follow, save, or comment)
+- Add 3–5 trending, relevant hashtags
+- Keep the total script under 60 seconds video
+- Use short, punchy sentences suitable for voice-over`
+          }
+
         ],
         max_tokens: 500,
         temperature: 0.7,

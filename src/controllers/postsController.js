@@ -17,7 +17,7 @@ const getPosts = async (req, res) => {
     } = req.query;
 
     const filter = {};
-    
+
     if (status) filter.status = status;
     if (startDate || endDate) {
       filter.createdAt = {};
@@ -63,8 +63,8 @@ const getPostStats = async (req, res) => {
       Post.findOne({ status: 'success' }).sort({ postedAt: -1 })
     ]);
 
-    const nextScheduledPost = lastSuccess ? 
-      new Date(lastSuccess.postedAt.getTime() + 2 * 60 * 60 * 1000) : 
+    const nextScheduledPost = lastSuccess ?
+      new Date(lastSuccess.postedAt.getTime() + 2 * 60 * 60 * 1000) :
       new Date(Date.now() + 2 * 60 * 60 * 1000);
 
     res.json({
@@ -86,49 +86,68 @@ const getPostStats = async (req, res) => {
 
 const createManualPost = async (req, res) => {
   try {
-    const topic = await ContentService.getRandomTopic();
-    const content = await ContentService.generateAIContent(topic);
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id).populate('nicheId');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.heygenAvatarId) {
+      return res.status(400).json({ message: 'HeyGen Avatar ID not found. Please upload an avatar first.' });
+    }
+
+    const nicheName = user.nicheId ? user.nicheId.name : 'General';
+    const topic = await ContentService.getRandomTopic(user.nicheId?._id);
+    const content = await ContentService.generateAIContent(topic, nicheName);
     const contentHash = ContentService.generateContentHash(content);
-    
+
     // Check for duplicates
     const existingPost = await Post.findOne({ contentHash });
     if (existingPost) {
       return res.status(400).json({ message: 'Duplicate content detected' });
     }
 
-    const image = await ImageService.fetchImage(topic);
-    
+    // Initiate HeyGen Video Generation
+    const HeyGenService = require('../services/HeyGenService');
+    console.log("content", content);
+
+    // Call V2 Video Generation API
+    const videoInit = await HeyGenService.generateVideoV2({
+      photo_avatar_id: user.heygenAvatarId,
+      text: content,
+      voice_id: "en-US-Standard-J"
+    });
+
     const post = new Post({
       title: topic,
       content: content,
       contentHash: contentHash,
-      imageUrl: image.url,
-      imageAlt: image.alt,
+      heygenVideoId: videoInit.data.video_id,
       status: 'pending',
-      scheduledFor: new Date()
+      scheduledFor: new Date(),
+      // We'll update videoUrl later once it's completed via polling/webhook/callback
     });
 
     await post.save();
 
-    logger.info(`Manual post created: ${post._id}`);
+    logger.info(`Manual post created with video initiation: ${post._id}`);
 
-    // Start background posting process
-    require('../services/SchedulerService').postWithRetry(post);
-
-    res.status(201).json({ 
-      message: 'Post created successfully',
-      post 
+    res.status(201).json({
+      message: 'Video generation initiated',
+      post,
+      videoSession: videoInit.data
     });
   } catch (error) {
     logger.error('Error creating manual post:', error);
-    res.status(500).json({ message: 'Failed to create post' });
+    res.status(500).json({ message: 'Failed to create post: ' + error.message });
   }
 };
 
 const retryPost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    
+
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
@@ -150,9 +169,27 @@ const retryPost = async (req, res) => {
   }
 };
 
+const updatePost = async (req, res) => {
+  try {
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    res.json({ message: 'Post updated successfully', post });
+  } catch (error) {
+    logger.error('Error updating post:', error);
+    res.status(500).json({ message: 'Failed to update post' });
+  }
+};
+
 module.exports = {
   getPosts,
   getPostStats,
   createManualPost,
-  retryPost
+  retryPost,
+  updatePost
 };

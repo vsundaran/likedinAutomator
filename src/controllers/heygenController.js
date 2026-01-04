@@ -33,7 +33,23 @@ const getAvatarStatus = async (req, res) => {
     }
 };
 
+const getVideoStatus = async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        if (!videoId) {
+            return res.status(400).json({ message: "Video ID is required." });
+        }
+
+        const result = await HeyGenService.getVideoStatusV2(videoId);
+        res.json({ data: result.data });
+    } catch (error) {
+        console.error("Get video status error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     addMotion,
-    getAvatarStatus
+    getAvatarStatus,
+    getVideoStatus
 };

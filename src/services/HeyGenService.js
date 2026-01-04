@@ -145,23 +145,71 @@ class HeyGenService {
     }
 
     /**
+     * Step 5: Generate Full Video (Final Output)
+     * @param {Object} params 
+     * @returns {Promise<Object>}
+     */
+    async generateVideoV2({ photo_avatar_id, text, voice_id = "en-US-Standard-J", background_mode = "circular", test = false }) {
+        try {
+            const response = await axios.post(
+                `${this.apiBaseUrl}/video/generate`,
+                {
+                    photo_avatar_id,
+                    script_type: "text",
+                    text,
+                    voice_id,
+                    background_mode,
+                    test
+                },
+                {
+                    headers: {
+                        "x-api-key": this.apiKey,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            return response.data;
+        } catch (error) {
+            console.error("HeyGen video generation failed:", error.response?.data || error.message);
+            throw new Error(`HeyGen video generation failed: ${error.response?.data?.message || error.message}`);
+        }
+    }
+
+    /**
+     * Step 6: Poll Video Status
+     * @param {string} videoId 
+     * @returns {Promise<Object>}
+     */
+    async getVideoStatusV2(videoId) {
+        try {
+            const response = await axios.get(`${this.apiBaseUrl}/video/${videoId}`, {
+                headers: {
+                    "x-api-key": this.apiKey,
+                },
+            });
+
+            return response.data;
+        } catch (error) {
+            console.error("HeyGen video status fetch failed:", error.response?.data || error.message);
+            throw new Error(`HeyGen video status fetch failed: ${error.response?.data?.message || error.message}`);
+        }
+    }
+
+    /**
      * Legacy/Helper: Generate Video (Now essentially addMotion + polling logic if needed)
      */
     async generateVideo(avatarUrl, script, title) {
         // This was the old V1 version. The new way is:
-        // 1. If we have a heygenAvatarId, use it for addMotion.
+        // 1. If we have a heygenAvatarId, use it for addMotion/generateVideoV2.
         // 2. If we only have a URL, we might need to re-upload or use a different endpoint.
-        // Since the requirement is to update generateVideo, I'll keep it for compatibility 
-        // but maybe point it to the new flow if appropriate.
-        // Actually, the user said "Update the generateVideo function with above mentioned video genaration doc."
-        // The V2 doc for motion video generation is what I implemented in addMotion.
 
-        console.warn("generateVideo called - this should likely be handled by addMotion and polling in V2");
+        console.warn("generateVideo called - this should likely be handled by generateVideoV2 in V2");
 
-        // For now, I'll just return what addMotion does, or implement a basic polling here if synchronous behavior is expected.
-        // But the requirement says "It will return a success message, but not the video itself immediately. You must poll..."
-
-        return this.addMotion(avatarUrl, script); // Assuming avatarUrl is the ID in this context if updated elsewhere
+        return this.generateVideoV2({
+            photo_avatar_id: avatarUrl, // Assuming avatarUrl is the ID in this context if updated elsewhere
+            text: script
+        });
     }
 }
 
