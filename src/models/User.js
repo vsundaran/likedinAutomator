@@ -33,6 +33,10 @@ const UserSchema = new mongoose.Schema({
     accountHolderName: String,
     bankName: String,
   },
+  heygenAvatarId: {
+    type: String,
+    required: false,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

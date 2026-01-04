@@ -343,9 +343,33 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
     }
 
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    await User.findByIdAndUpdate(req.user.id, { avatarUrl });
 
-    res.json({ message: "Avatar uploaded successfully", avatarUrl });
+    // Integrate HeyGen flow
+    const HeyGenService = require("../services/HeyGenService");
+    const path = require("path");
+    const fs = require("fs");
+
+    let heygenAvatarId = null;
+    try {
+      const filePath = path.join(__dirname, "../../", avatarUrl);
+      const imageKey = await HeyGenService.uploadAsset(filePath, req.file.originalname);
+      const user = await User.findById(req.user.id);
+      heygenAvatarId = await HeyGenService.createAvatarGroup(imageKey, user.fullName || "User Avatar");
+    } catch (heygenError) {
+      console.error("HeyGen avatar registration failed during upload:", heygenError);
+      // We continue anyway so the user can still use the local avatar if HeyGen is down
+    }
+
+    await User.findByIdAndUpdate(req.user.id, {
+      avatarUrl,
+      heygenAvatarId
+    });
+
+    res.json({
+      message: "Avatar uploaded successfully",
+      avatarUrl,
+      heygenAvatarId
+    });
   } catch (error) {
     console.error("Avatar upload error:", error);
     res.status(500).json({ message: "Internal server error" });

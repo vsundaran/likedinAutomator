@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Box, Typography, Grid, Stack, Chip, CircularProgress, Alert, List, ListItem, Divider } from '@mui/material';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import MovieIcon from '@mui/icons-material/Movie';
 import { AppCard } from '../../components/atoms/AppCard';
 import { AppButton } from '../../components/atoms/AppButton';
 import { postsApi } from '../../api/posts';
 import { authApi } from '../../api/auth';
+import { heygenApi } from '../../api/heygen';
 
 interface Post {
     _id: string;
@@ -23,7 +25,10 @@ export default function ContentPage() {
     const [userProfile, setUserProfile] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isPosting, setIsPosting] = useState(false);
+    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const pollInterval = useRef<any>(null);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -34,6 +39,9 @@ export default function ContentPage() {
             ]);
             setPosts(postsRes.data.posts);
             setUserProfile(profileRes.data.user);
+
+            // If user has a video in status, shows it
+            checkVideoStatus();
         } catch (err) {
             console.error('Failed to fetch data:', err);
             setError('Failed to load content data.');
@@ -42,8 +50,35 @@ export default function ContentPage() {
         }
     };
 
+    const checkVideoStatus = async () => {
+        try {
+            const res = await heygenApi.getStatus();
+            if (res.data.data?.motion_preview_url) {
+                setVideoUrl(res.data.data.motion_preview_url);
+                if (res.data.data.status === 'completed') {
+                    stopPolling();
+                }
+            }
+        } catch (err) {
+            console.error('Failed to check video status:', err);
+        }
+    };
+
+    const startPolling = () => {
+        if (pollInterval.current) return;
+        pollInterval.current = setInterval(checkVideoStatus, 5000);
+    };
+
+    const stopPolling = () => {
+        if (pollInterval.current) {
+            clearInterval(pollInterval.current);
+            pollInterval.current = null;
+        }
+    };
+
     useEffect(() => {
         fetchData();
+        return () => stopPolling();
     }, []);
 
     const handleManualPost = async () => {
@@ -56,6 +91,22 @@ export default function ContentPage() {
             setError(err.response?.data?.message || 'Failed to create post.');
         } finally {
             setIsPosting(false);
+        }
+    };
+
+    const handleGenerateVideo = async () => {
+        setIsGeneratingVideo(true);
+        setError(null);
+        try {
+            await heygenApi.addMotion({
+                prompt: "A natural, breathing motion with a subtle smile",
+                motion_type: "consistent"
+            });
+            startPolling();
+        } catch (err: any) {
+            console.error('Failed to generate video:', err);
+            setError(err.response?.data?.message || 'Failed to initiate video generation.');
+            setIsGeneratingVideo(false);
         }
     };
 
@@ -86,13 +137,25 @@ export default function ContentPage() {
                         <Grid item xs={12} md={4}>
                             <AppCard sx={{ mb: 3 }}>
                                 <Box sx={{ p: 4, textAlign: 'center' }}>
-                                    {currentPost.imageUrl && (
-                                        <Box
-                                            component="img"
-                                            src={currentPost.imageUrl}
-                                            sx={{ width: '100%', borderRadius: '12px', mb: 3 }}
-                                            onError={(e: any) => e.target.src = 'https://via.placeholder.com/500'}
-                                        />
+                                    {videoUrl ? (
+                                        <Box sx={{ width: '100%', borderRadius: '12px', overflow: 'hidden', mb: 3 }}>
+                                            <video
+                                                src={videoUrl}
+                                                controls
+                                                autoPlay
+                                                loop
+                                                style={{ width: '100%', display: 'block' }}
+                                            />
+                                        </Box>
+                                    ) : (
+                                        currentPost.imageUrl && (
+                                            <Box
+                                                component="img"
+                                                src={currentPost.imageUrl}
+                                                sx={{ width: '100%', borderRadius: '12px', mb: 3 }}
+                                                onError={(e: any) => e.target.src = 'https://via.placeholder.com/500'}
+                                            />
+                                        )
                                     )}
                                     <Typography variant="h3" sx={{ fontSize: '18px', mb: 1 }}>{currentPost.title}</Typography>
                                     <Stack spacing={2} sx={{ mt: 3 }}>
@@ -105,6 +168,17 @@ export default function ContentPage() {
                                         >
                                             {isPosting ? <CircularProgress size={20} /> : 'Generate & Post Now'}
                                         </AppButton>
+
+                                        <AppButton
+                                            variant="outlined"
+                                            fullWidth
+                                            startIcon={<MovieIcon />}
+                                            onClick={handleGenerateVideo}
+                                            disabled={isGeneratingVideo || !!pollInterval.current}
+                                        >
+                                            {isGeneratingVideo || pollInterval.current ? <CircularProgress size={20} /> : 'Generate Motion Video'}
+                                        </AppButton>
+
                                         <AppButton variant="outlined" fullWidth startIcon={<ScheduleIcon />}>Schedule</AppButton>
                                         <AppButton variant="text" fullWidth startIcon={<RefreshIcon />}>Regenerate Content</AppButton>
                                     </Stack>
