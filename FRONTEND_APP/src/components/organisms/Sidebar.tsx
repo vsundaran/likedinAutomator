@@ -116,8 +116,20 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             <Divider />
             <List sx={{ px: 2, mb: 1 }}>
                 <ListItem disablePadding>
-                    <ListItemButton sx={{ borderRadius: '12px' }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
+                    <ListItemButton
+                        onClick={() => handleNavigation('/dashboard/settings')}
+                        selected={location.pathname === '/dashboard/settings'}
+                        sx={{
+                            borderRadius: '12px',
+                            '&.Mui-selected': {
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                '&:hover': { bgcolor: 'primary.dark' },
+                                '& .MuiListItemIcon-root': { color: 'white' },
+                            },
+                        }}
+                    >
+                        <ListItemIcon sx={{ minWidth: 40, color: location.pathname === '/dashboard/settings' ? 'white' : 'text.secondary' }}>
                             <SettingsIcon />
                         </ListItemIcon>
                         <ListItemText primary="Settings" primaryTypographyProps={{ fontWeight: 500 }} />

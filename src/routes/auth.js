@@ -81,6 +81,11 @@ router.post("/send-otp", async (req, res) => {
       if (existingUser) {
         return res.status(409).json({ message: "User already exists" });
       }
+    } else if (type === "change_password") {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
     }
 
     const otp = generateOTP();
@@ -470,6 +475,78 @@ router.get("/profile", authenticateToken, async (req, res) => {
     res.json({ user, onboardingStatus });
   } catch (error) {
     console.error("Profile fetch error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update profile
+router.put("/profile", authenticateToken, async (req, res) => {
+  try {
+    const { fullName } = req.body;
+    if (!fullName) {
+      return res.status(400).json({ message: "Full name is required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { fullName },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ message: "Profile updated successfully", user });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Change Password
+router.post("/change-password", authenticateToken, async (req, res) => {
+  try {
+    const { oldPassword, newPassword, otp } = req.body;
+    if (!oldPassword || !newPassword || !otp) {
+      return res.status(400).json({ message: "All fields including OTP are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    // Verify OTP
+    const otpRecord = await OTP.findOne({
+      email: req.user.email.toLowerCase(),
+      otp,
+      type: "change_password",
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect old password" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    await user.save();
+
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Change password error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

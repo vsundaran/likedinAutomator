@@ -2,12 +2,19 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import Cookies from 'js-cookie';
 import { authApi } from '../api/auth';
 
+interface Niche {
+    _id: string;
+    name: string;
+    description: string;
+    topics: string[];
+}
+
 interface User {
     id: string;
     email: string;
     fullName: string;
     avatarUrl?: string;
-    nicheId?: string;
+    nicheId?: string | Niche;
     bankDetails?: {
         accountNumber: string;
         ifscCode: string;

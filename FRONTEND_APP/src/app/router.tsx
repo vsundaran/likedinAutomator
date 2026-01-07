@@ -18,6 +18,8 @@ import ContentPage from '../pages/dashboard/ContentPage';
 import EarningsPage from '../pages/dashboard/EarningsPage';
 import AnalyticsPage from '../pages/dashboard/AnalyticsPage';
 
+import SettingsPage from '../pages/dashboard/SettingsPage';
+
 export function AppRouter() {
     return (
         <Routes>
@@ -49,6 +51,7 @@ export function AppRouter() {
                     <Route path="content" element={<ContentPage />} />
                     <Route path="earnings" element={<EarningsPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
                 </Route>
             </Route>
 

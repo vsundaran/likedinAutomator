@@ -56,3 +56,20 @@ export const useUpdateAvatarMutation = () => {
         },
     });
 };
+
+export const useUpdateProfileMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: { fullName: string }) => authApi.updateProfile(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['me'] });
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
+        },
+    });
+};
+
+export const useChangePasswordMutation = () => {
+    return useMutation({
+        mutationFn: (data: any) => authApi.changePassword(data),
+    });
+};

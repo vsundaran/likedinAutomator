@@ -17,4 +17,6 @@ export const authApi = {
     updateNiche: (nicheId: string) => client.post('/auth/niche', { nicheId }),
     updateBankDetails: (bankDetails: any) => client.post('/auth/bank-details', bankDetails),
     logout: () => client.post('/auth/logout'),
+    updateProfile: (data: { fullName: string }) => client.put('/auth/profile', data),
+    changePassword: (data: any) => client.post('/auth/change-password', data),
 };
