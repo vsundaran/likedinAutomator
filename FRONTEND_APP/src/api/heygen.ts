@@ -4,6 +4,6 @@ export const heygenApi = {
     addMotion: (data: { prompt?: string; motion_type?: string }) =>
         client.post('/heygen/add-motion', data),
 
-    getStatus: () =>
-        client.get('/heygen/status'),
+    getStatus: (videoId?: string) =>
+        client.get(videoId ? `/heygen/status/${videoId}` : '/heygen/status'),
 };

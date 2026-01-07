@@ -35,13 +35,13 @@ const getAvatarStatus = async (req, res) => {
 
 const getVideoStatus = async (req, res) => {
     try {
-        const { videoId } = req.params;
+        const videoId = req.params.videoId || req.query.video_id;
         if (!videoId) {
             return res.status(400).json({ message: "Video ID is required." });
         }
 
-        const result = await HeyGenService.getVideoStatusV2(videoId);
-        res.json({ data: result.data });
+        const result = await HeyGenService.getVideoStatus(videoId);
+        res.json({ data: result });
     } catch (error) {
         console.error("Get video status error:", error);
         res.status(500).json({ message: error.message });

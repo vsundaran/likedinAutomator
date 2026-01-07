@@ -30,6 +30,7 @@ export default function ContentPage() {
     const [error, setError] = useState<string | null>(null);
     const [generationStatus, setGenerationStatus] = useState<string | null>(null);
     const [currentPostId, setCurrentPostId] = useState<string | null>(null);
+    const [currentHeygenVideoId, setCurrentHeygenVideoId] = useState<string | null>(null);
     const pollInterval = useRef<any>(null);
 
     const fetchData = async () => {
@@ -46,9 +47,12 @@ export default function ContentPage() {
             const pendingPost = postsRes.data.posts.find((p: any) => p.status === 'pending' && !p.videoUrl);
             if (pendingPost) {
                 setCurrentPostId(pendingPost._id);
+                // @ts-ignore
+                setCurrentHeygenVideoId(pendingPost.heygenVideoId);
                 startPolling();
             } else {
-                checkVideoStatus();
+                // If there's an ongoing global status check needed, handle here
+                // For now, only poll if we have a currentHeygenVideoId
             }
         } catch (err) {
             console.error('Failed to fetch data:', err);
@@ -59,13 +63,19 @@ export default function ContentPage() {
     };
 
     const checkVideoStatus = async () => {
+        if (!currentHeygenVideoId) {
+            // If no specific video is being tracked, fallback or stop
+            return;
+        }
+
         try {
-            const res = await heygenApi.getStatus();
+            const res = await heygenApi.getStatus(currentHeygenVideoId);
             const statusData = res.data.data;
 
             if (statusData) {
-                if (statusData.motion_preview_url) {
-                    setVideoUrl(statusData.motion_preview_url);
+                const url = statusData.video_url || statusData.motion_preview_url;
+                if (url) {
+                    setVideoUrl(url);
                 }
 
                 if (statusData.status === 'completed') {
@@ -73,10 +83,10 @@ export default function ContentPage() {
                     setGenerationStatus('Video ready!');
 
                     // Update the post on the server if we have a current post being tracked
-                    if (currentPostId && statusData.motion_preview_url) {
+                    if (currentPostId && url) {
                         try {
                             await postsApi.updatePost(currentPostId, {
-                                videoUrl: statusData.motion_preview_url,
+                                videoUrl: url,
                                 status: 'success'
                             });
                             // Refresh posts list to reflect changes in history table
@@ -89,11 +99,11 @@ export default function ContentPage() {
 
                     stopPolling();
                 } else if (statusData.status === 'failed') {
-                    setError('Video generation failed.');
+                    setError('Video generation failed: ' + (statusData.error || statusData.message || 'Unknown error'));
                     stopPolling();
-                } else if (statusData.status === 'processing' || statusData.status === 'waiting') {
+                } else if (statusData.status === 'processing' || statusData.status === 'pending' || statusData.status === 'waiting') {
                     setGenerationStatus(`Processing video... ${Math.round(videoProgress)}%`);
-                    startPolling();
+                    // Polling continues as long as interval exists
                 }
             }
         } catch (err) {
@@ -111,6 +121,7 @@ export default function ContentPage() {
             clearInterval(pollInterval.current);
             pollInterval.current = null;
             setCurrentPostId(null);
+            setCurrentHeygenVideoId(null);
         }
     };
 
@@ -141,11 +152,11 @@ export default function ContentPage() {
         setVideoProgress(0);
         try {
             const res = await postsApi.createManualPost({});
-            const { post } = res.data;
-
+            console.log('Manual post created with video initiation:', res.data);
             // Immediately update the posts list with the new pending post
-            setPosts(prev => [post, ...prev]);
-            setCurrentPostId(post._id);
+            setPosts(prev => [res.data.post, ...prev]);
+            setCurrentPostId(res.data.post._id);
+            setCurrentHeygenVideoId(res.data.videoId);
 
             setGenerationStatus('Script generated! Starting video generation...');
             setVideoProgress(15); // Start at 15% after script is ready
@@ -366,6 +377,8 @@ export default function ContentPage() {
                     </Grid>
                 )}
             </Grid>
+
+            <AppButton variant="contained" onClick={handleManualPost} sx={{ mt: 2 }}>Generate Next Post</AppButton>
         </Box>
     );
 }

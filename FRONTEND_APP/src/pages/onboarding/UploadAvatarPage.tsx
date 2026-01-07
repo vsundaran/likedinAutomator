@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Box, Typography, Container, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Container, List, ListItem, ListItemIcon, ListItemText, CircularProgress, Alert, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ export default function UploadAvatarPage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [gender, setGender] = useState<'male' | 'female'>('female');
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -39,6 +40,7 @@ export default function UploadAvatarPage() {
 
         const formData = new FormData();
         formData.append('avatar', file);
+        formData.append('gender', gender);
 
         try {
             await authApi.updateAvatar(formData);
@@ -62,7 +64,20 @@ export default function UploadAvatarPage() {
 
             {error && <Alert severity="error" sx={{ mb: 4 }}>{error}</Alert>}
 
-            <AppCard sx={{ p: 0, mb: 4 }}>
+            <AppCard sx={{ p: 4, mb: 4 }}>
+                <FormControl component="fieldset" sx={{ width: '100%', mb: 2 }}>
+                    <FormLabel component="legend" sx={{ textAlign: 'left', mb: 1, fontWeight: 'bold', color: 'text.primary' }}>Select Your Gender</FormLabel>
+                    <RadioGroup
+                        row
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value as 'male' | 'female')}
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        <FormControlLabel value="male" control={<Radio />} label="Male" />
+                        <FormControlLabel value="female" control={<Radio />} label="Female" />
+                    </RadioGroup>
+                </FormControl>
+
                 <input
                     type="file"
                     accept="image/*"
@@ -127,7 +142,7 @@ export default function UploadAvatarPage() {
                 >
                     {isLoading ? <CircularProgress size={24} /> : 'Continue to Dashboard'}
                 </AppButton>
-                <AppButton
+                <AppButton disabled
                     variant="text"
                     sx={{ mt: 2 }}
                     onClick={() => navigate('/dashboard')}

@@ -64,7 +64,7 @@ const getPostStats = async (req, res) => {
     ]);
 
     const nextScheduledPost = lastSuccess ?
-      new Date(lastSuccess.postedAt.getTime() + 2 * 60 * 60 * 1000) :
+      new Date(lastSuccess?.postedAt?.getTime() || Date.now() + 2 * 60 * 60 * 1000) :
       new Date(Date.now() + 2 * 60 * 60 * 1000);
 
     res.json({
@@ -110,33 +110,33 @@ const createManualPost = async (req, res) => {
 
     // Initiate HeyGen Video Generation
     const HeyGenService = require('../services/HeyGenService');
-    console.log("content", content);
+    console.log("Generating video with content:", content);
 
-    // Call V2 Video Generation API
-    const videoInit = await HeyGenService.generateVideoV2({
-      photo_avatar_id: user.heygenAvatarId,
+    // Call V2 Video Generation API (Step 7)
+    const videoId = await HeyGenService.generateVideoV2({
+      talking_photo_id: user.heygenTalkingPhotoId,
+      voice_id: user.heygenVoiceId,
       text: content,
-      voice_id: "en-US-Standard-J"
+      title: topic
     });
 
     const post = new Post({
       title: topic,
       content: content,
       contentHash: contentHash,
-      heygenVideoId: videoInit.data.video_id,
+      heygenVideoId: videoId,
       status: 'pending',
       scheduledFor: new Date(),
-      // We'll update videoUrl later once it's completed via polling/webhook/callback
     });
 
     await post.save();
 
-    logger.info(`Manual post created with video initiation: ${post._id}`);
+    logger.info(`Manual post created with video initiation: ${post._id}, Video ID: ${videoId}`);
 
     res.status(201).json({
       message: 'Video generation initiated',
       post,
-      videoSession: videoInit.data
+      videoId
     });
   } catch (error) {
     logger.error('Error creating manual post:', error);

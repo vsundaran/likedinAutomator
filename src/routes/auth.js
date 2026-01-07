@@ -338,37 +338,80 @@ router.post("/logout", authenticateToken, (req, res) => {
 // Update avatar
 router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+    const { gender } = req.body;
+    if (!gender) {
+      return res.status(400).json({ message: "Gender is required" });
     }
 
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
-    // Integrate HeyGen flow
+    // Integrate HeyGen flow (Steps 1-6)
     const HeyGenService = require("../services/HeyGenService");
     const path = require("path");
-    const fs = require("fs");
 
-    let heygenAvatarId = null;
+    let heygenFields = {
+      gender,
+      avatarUrl,
+      heygenAvatarId: null,
+      heygenTalkingPhotoId: null,
+      heygenVoiceId: null
+    };
+
     try {
       const filePath = path.join(__dirname, "../../", avatarUrl);
-      const imageKey = await HeyGenService.uploadAsset(filePath, req.file.originalname);
       const user = await User.findById(req.user.id);
-      heygenAvatarId = await HeyGenService.createAvatarGroup(imageKey, user.fullName || "User Avatar");
+      const talkingPhotoName = `${user.fullName || "User"}_${Date.now()}`;
+
+      // Step 1: Upload Asset
+      console.log("HeyGen Step 1: Uploading Asset...");
+      const imageKey = await HeyGenService.uploadAsset(filePath);
+
+      // Step 2: Create Avatar Group
+      console.log("HeyGen Step 2: Creating Avatar Group...");
+      const groupId = await HeyGenService.createAvatarGroup(imageKey, talkingPhotoName);
+      heygenFields.heygenAvatarId = groupId;
+
+      // Step 3: Add Look to Group
+      console.log("HeyGen Step 3: Adding Look to Group...");
+      await HeyGenService.addLookToGroup(groupId, imageKey, talkingPhotoName);
+
+      // Step 4: Poll for Training Status (Simple loop for demo/initial implementation)
+      console.log("HeyGen Step 4: Waiting for Training/Moderation...");
+      let isReady = false;
+      let attempts = 0;
+      while (!isReady && attempts < 10) {
+        const status = await HeyGenService.getTrainingStatus(groupId);
+        console.log(`Training status: ${status}`);
+        if (status === 'completed' || status === 'active' || status === 'processed') {
+          isReady = true;
+        } else if (status === 'failed') {
+          throw new Error("HeyGen look training failed");
+        } else {
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+        }
+      }
+
+      // Step 5: Find Talking Photo ID
+      console.log("HeyGen Step 5: Fetching Talking Photo ID...");
+      const talkingPhotoId = await HeyGenService.findTalkingPhoto(talkingPhotoName);
+      heygenFields.heygenTalkingPhotoId = talkingPhotoId;
+
+      // Step 6: Pick Voice by Gender
+      console.log("HeyGen Step 6: Mapping Voice by Gender...");
+      const voiceId = await HeyGenService.pickVoiceByGender(gender);
+      heygenFields.heygenVoiceId = voiceId;
+
     } catch (heygenError) {
-      console.error("HeyGen avatar registration failed during upload:", heygenError);
-      // We continue anyway so the user can still use the local avatar if HeyGen is down
+      console.error("HeyGen integration failed:", heygenError);
+      // We continue but some HeyGen features might not work for this user yet
     }
 
-    await User.findByIdAndUpdate(req.user.id, {
-      avatarUrl,
-      heygenAvatarId
-    });
+    await User.findByIdAndUpdate(req.user.id, heygenFields);
 
     res.json({
-      message: "Avatar uploaded successfully",
-      avatarUrl,
-      heygenAvatarId
+      message: "Avatar uploaded and HeyGen processed successfully",
+      ...heygenFields
     });
   } catch (error) {
     console.error("Avatar upload error:", error);

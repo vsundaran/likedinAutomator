@@ -37,6 +37,19 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  gender: {
+    type: String,
+    enum: ["male", "female"],
+    required: false,
+  },
+  heygenTalkingPhotoId: {
+    type: String,
+    required: false,
+  },
+  heygenVoiceId: {
+    type: String,
+    required: false,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

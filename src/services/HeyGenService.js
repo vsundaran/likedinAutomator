@@ -1,5 +1,4 @@
 const axios = require("axios");
-const FormData = require("form-data");
 const fs = require("fs");
 
 class HeyGenService {
@@ -10,206 +9,249 @@ class HeyGenService {
     }
 
     /**
-     * Step 1: Upload Your Photo
+     * Step 1: Upload Asset (V1)
      * @param {string|Buffer} fileData filePath Or Buffer
-     * @param {string} filename Optional filename
      * @returns {Promise<string>} image_key
      */
-    async uploadAsset(fileData, filename = "avatar.jpg") {
+    async uploadAsset(fileData) {
         try {
             if (!this.apiKey) {
                 throw new Error("HEYGEN_API_KEY is not configured.");
             }
 
-            console.log("HeyGen upload started for:", typeof fileData === 'string' ? fileData : 'Buffer');
-
             let buffer;
-            let contentType = "image/jpeg"; // Default
+            let contentType = "image/jpeg";
 
             if (Buffer.isBuffer(fileData)) {
                 buffer = fileData;
             } else {
-                // Read from file path
                 buffer = fs.readFileSync(fileData);
-                // Simple content-type detection based on extension
                 const ext = fileData.split('.').pop().toLowerCase();
                 if (ext === 'png') contentType = 'image/png';
-                else if (ext === 'webp') contentType = 'image/webp';
+                else if (ext === 'jpeg' || ext === 'jpg') contentType = 'image/jpeg';
             }
 
             const response = await axios.post(this.uploadUrl, buffer, {
                 headers: {
                     "x-api-key": this.apiKey,
                     "Content-Type": contentType,
-                },
-                maxContentLength: Infinity,
-                maxBodyLength: Infinity,
+                    "accept": "application/json"
+                }
             });
 
             const imageKey = response.data?.data?.image_key;
             if (!imageKey) {
-                console.error("HeyGen upload response:", JSON.stringify(response.data));
-                throw new Error("Failed to get image_key from HeyGen upload response");
+                throw new Error("Failed to get image_key from HeyGen upload");
             }
 
             return imageKey;
         } catch (error) {
             console.error("HeyGen asset upload failed:", error.response?.data || error.message);
-            throw new Error(`HeyGen asset upload failed: ${error.response?.data?.message || error.message}`);
+            throw error;
         }
     }
 
     /**
-     * Step 2: Create Avatar Group (Get the ID)
+     * Step 2: Create Photo Avatar Group (V2)
      * @param {string} imageKey 
      * @param {string} name 
-     * @returns {Promise<string>} avatarId
+     * @returns {Promise<string>} group_id
      */
-    async createAvatarGroup(imageKey, name = "My Avatar") {
+    async createAvatarGroup(imageKey, name = "My Avatar Group") {
         try {
             const response = await axios.post(
                 `${this.apiBaseUrl}/photo_avatar/avatar_group/create`,
-                {
-                    name,
-                    image_key: imageKey,
-                },
+                { name, image_key: imageKey },
                 {
                     headers: {
                         "x-api-key": this.apiKey,
-                        "Content-Type": "application/json",
-                    },
+                        "content-type": "application/json",
+                        "accept": "application/json"
+                    }
                 }
             );
 
-            const avatarId = response.data?.data?.id;
-            if (!avatarId) {
-                throw new Error("Failed to get avatar ID from HeyGen create response");
-            }
-
-            return avatarId;
+            return response.data?.data?.id;
         } catch (error) {
-            console.error("HeyGen avatar group creation failed:", error.response?.data || error.message);
-            throw new Error(`HeyGen avatar group creation failed: ${error.message}`);
+            console.error("HeyGen create avatar group failed:", error.response?.data || error.message);
+            throw error;
         }
     }
 
     /**
-     * Step 3: Add Motion
-     * @param {string} avatarId 
-     * @param {string} prompt 
-     * @param {string} motionType 
-     * @returns {Promise<Object>}
+     * Step 3: Add Look to Avatar Group (V2)
+     * @param {string} groupId 
+     * @param {string} imageKey 
+     * @param {string} name 
      */
-    async addMotion(avatarId, prompt = "A natural, breathing motion with a subtle smile", motionType = "consistent") {
+    async addLookToGroup(groupId, imageKey, name = "My Look") {
         try {
             const response = await axios.post(
-                `${this.apiBaseUrl}/photo_avatar/add_motion`,
-                {
-                    id: avatarId,
-                    motion_type: motionType,
-                    prompt,
-                },
+                `${this.apiBaseUrl}/photo_avatar/avatar_group/add`,
+                { group_id: groupId, image_keys: [imageKey], name },
                 {
                     headers: {
                         "x-api-key": this.apiKey,
-                        "Content-Type": "application/json",
-                    },
+                        "content-type": "application/json",
+                        "accept": "application/json"
+                    }
+                }
+            );
+            return response.data;
+        } catch (error) {
+            console.error("HeyGen add look failed:", error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Step 4: Check Look Generation Status (V2)
+     * @param {string} groupId 
+     */
+    async getTrainingStatus(groupId) {
+        try {
+            const response = await axios.get(
+                `${this.apiBaseUrl}/photo_avatar/train/status/${groupId}`,
+                {
+                    headers: {
+                        "x-api-key": this.apiKey,
+                        "accept": "application/json"
+                    }
+                }
+            );
+            return response.data?.data?.status;
+        } catch (error) {
+            console.error("HeyGen fetch training status failed:", error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Step 5: List Avatars to find talking photo ID (V2)
+     * @param {string} talkingPhotoName 
+     */
+    async findTalkingPhoto(talkingPhotoName) {
+        try {
+            const response = await axios.get(
+                `${this.apiBaseUrl}/avatars`,
+                {
+                    headers: {
+                        "x-api-key": this.apiKey,
+                        "accept": "application/json"
+                    }
                 }
             );
 
-            return response.data;
+            const talkingPhotos = response.data?.data?.talking_photos || [];
+            // Try to find by name
+            return talkingPhotos.find(tp => tp.talking_photo_name === talkingPhotoName)?.talking_photo_id;
         } catch (error) {
-            console.error("HeyGen add motion failed:", error.response?.data || error.message);
-            throw new Error(`HeyGen add motion failed: ${error.message}`);
+            console.error("HeyGen list avatars failed:", error.response?.data || error.message);
+            throw error;
         }
     }
 
     /**
-     * Step 4: Get Avatar Details (Poll for video URL)
-     * @param {string} avatarId 
-     * @returns {Promise<Object>}
+     * Step 6: List Voices and pick one by gender (V2)
+     * @param {string} gender 'male' or 'female'
      */
-    async getAvatarDetails(avatarId) {
+    async pickVoiceByGender(gender) {
         try {
-            const response = await axios.get(`${this.apiBaseUrl}/photo_avatar/${avatarId}`, {
-                headers: {
-                    "x-api-key": this.apiKey,
-                },
-            });
+            const response = await axios.get(
+                `${this.apiBaseUrl}/voices`,
+                {
+                    headers: {
+                        "x-api-key": this.apiKey,
+                        "accept": "application/json"
+                    }
+                }
+            );
 
-            return response.data;
+            const voices = response.data?.data?.voices || [];
+            // Filter by gender and pick the first one (or a stable one)
+            const filteredVoices = voices.filter(v => v.gender.toLowerCase() === gender.toLowerCase() && v.language === 'English');
+            return filteredVoices[0]?.voice_id || voices[0]?.voice_id;
         } catch (error) {
-            console.error("HeyGen avatar details fetch failed:", error.response?.data || error.message);
-            throw new Error(`HeyGen avatar details fetch failed: ${error.message}`);
+            console.error("HeyGen list voices failed:", error.response?.data || error.message);
+            throw error;
         }
     }
 
     /**
-     * Step 5: Generate Full Video (Final Output)
-     * @param {Object} params 
-     * @returns {Promise<Object>}
+     * Step 7: Generate Video (V2)
      */
-    async generateVideoV2({ photo_avatar_id, text, voice_id = "en-US-Standard-J", background_mode = "circular", test = false }) {
+    async generateVideoV2({ talking_photo_id, voice_id, text, title }) {
         try {
+            const payload = {
+                caption: true,
+                video_inputs: [{
+                    character: {
+                        type: "talking_photo",
+                        scale: 1,
+                        avatar_style: "normal",
+                        talking_style: "stable",
+                        talking_photo_id: talking_photo_id,
+                        expression: "happy"
+                    },
+                    voice: {
+                        type: "text",
+                        speed: "1",
+                        pitch: "0",
+                        voice_id: voice_id,
+                        input_text: text
+                    },
+                    background: {
+                        type: "color",
+                        value: "#FFFFFF"
+                    },
+                    text: {
+                        type: "text",
+                        text: " ",
+                        line_height: 0.1
+                    }
+                }],
+                dimension: { width: 1280, height: 720 },
+                title: title
+            };
+
             const response = await axios.post(
                 `${this.apiBaseUrl}/video/generate`,
-                {
-                    photo_avatar_id,
-                    script_type: "text",
-                    text,
-                    voice_id,
-                    background_mode,
-                    test
-                },
+                payload,
                 {
                     headers: {
                         "x-api-key": this.apiKey,
-                        "Content-Type": "application/json",
-                    },
+                        "content-type": "application/json",
+                        "accept": "application/json"
+                    }
                 }
             );
 
-            return response.data;
+            return response.data?.data?.video_id;
         } catch (error) {
             console.error("HeyGen video generation failed:", error.response?.data || error.message);
-            throw new Error(`HeyGen video generation failed: ${error.response?.data?.message || error.message}`);
+            throw error;
         }
     }
 
     /**
-     * Step 6: Poll Video Status
-     * @param {string} videoId 
-     * @returns {Promise<Object>}
+     * Step 8: Get Video Status (V1)
      */
-    async getVideoStatusV2(videoId) {
+    async getVideoStatus(videoId) {
         try {
-            const response = await axios.get(`${this.apiBaseUrl}/video/${videoId}`, {
-                headers: {
-                    "x-api-key": this.apiKey,
-                },
-            });
-
-            return response.data;
+            const response = await axios.get(
+                `https://api.heygen.com/v1/video_status.get?video_id=${videoId}`,
+                {
+                    headers: {
+                        "x-api-key": this.apiKey,
+                        "accept": "application/json"
+                    }
+                }
+            );
+            return response.data?.data;
         } catch (error) {
-            console.error("HeyGen video status fetch failed:", error.response?.data || error.message);
-            throw new Error(`HeyGen video status fetch failed: ${error.response?.data?.message || error.message}`);
+            console.error("HeyGen fetch video status failed:", error.response?.data || error.message);
+            throw error;
         }
-    }
-
-    /**
-     * Legacy/Helper: Generate Video (Now essentially addMotion + polling logic if needed)
-     */
-    async generateVideo(avatarUrl, script, title) {
-        // This was the old V1 version. The new way is:
-        // 1. If we have a heygenAvatarId, use it for addMotion/generateVideoV2.
-        // 2. If we only have a URL, we might need to re-upload or use a different endpoint.
-
-        console.warn("generateVideo called - this should likely be handled by generateVideoV2 in V2");
-
-        return this.generateVideoV2({
-            photo_avatar_id: avatarUrl, // Assuming avatarUrl is the ID in this context if updated elsewhere
-            text: script
-        });
     }
 }
 
