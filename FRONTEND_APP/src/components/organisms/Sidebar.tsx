@@ -1,9 +1,9 @@
-import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Typography } from '@mui/material';
+import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import PostAddIcon from '@mui/icons-material/PostAdd';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import BarChartIcon from '@mui/icons-material/BarChart';
+// import PostAddIcon from '@mui/icons-material/PostAdd';
+// import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+// import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ShareIcon from '@mui/icons-material/Share';
@@ -14,9 +14,9 @@ import { useState } from 'react';
 const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Social', icon: <ShareIcon />, path: '/dashboard/socials' },
-    { text: 'Content', icon: <PostAddIcon />, path: '/dashboard/content' },
-    { text: 'Earnings', icon: <AccountBalanceWalletIcon />, path: '/dashboard/earnings' },
-    { text: 'Analytics', icon: <BarChartIcon />, path: '/dashboard/analytics' },
+    // { text: 'Content', icon: <PostAddIcon />, path: '/dashboard/content' },
+    // { text: 'Earnings', icon: <AccountBalanceWalletIcon />, path: '/dashboard/earnings' },
+    // { text: 'Analytics', icon: <BarChartIcon />, path: '/dashboard/analytics' },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -44,6 +44,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     const handleLogoutClose = () => {
         setOpenLogoutDialog(false);
     };
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
     return (
         <Box
@@ -54,17 +56,22 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 bgcolor: 'background.paper',
             }}
         >
-            <Box sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-                <Box
-                    component="img"
-                    src={logo}
-                    alt="Vibe2EarnAI Logo"
-                    sx={{
-                        maxWidth: "80px",
-                        objectFit: "cover",
-                        width: "100%",
-                    }}
-                />
+            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', pt: isMobile ? 8 : 3 }}>
+
+                {
+                    !isMobile ? <Box
+                        component="img"
+                        src={logo}
+                        alt="Vibe2EarnAI Logo"
+                        sx={{
+                            maxWidth: "80px",
+                            objectFit: "cover",
+                            width: "100%",
+                        }}
+                    /> : null
+                }
+
+
             </Box>
 
             <Box sx={{ px: 3, pb: 2 }}>
