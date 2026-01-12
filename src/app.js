@@ -124,7 +124,7 @@ mongoose
 
     // Start scheduler only if not in test environment
     if (process.env.NODE_ENV !== "test") {
-      // require("./services/SchedulerService").start();
+      require("./services/SchedulerService").start();
     }
   })
   .catch((err) => {

@@ -1,80 +1,97 @@
 const cron = require("node-cron");
 const Post = require("../models/Post");
+const User = require("../models/User");
 const ContentService = require("./ContentService");
-const ImageService = require("./ImageService");
 const LinkedInService = require("./LinkedInService");
+const AutoPostService = require("./AutoPostService");
 const logger = require("../utils/logger");
 
 class SchedulerService {
   constructor() {
-    this.isRunning = false;
+    this.isCycleRunning = false;
+    this.isPollingRunning = false;
   }
 
   start() {
-    // this.executePostingCycle();
-    // Run every 1 hours
+    // Run status polling every minute
     cron.schedule("* * * * *", () => {
-      this.executePostingCycle();
+      this.pollVideoStatuses();
     });
 
-    logger.info("Scheduler started - will run every 2 hours");
+    // Run schedule check every hour
+    cron.schedule("0 * * * *", () => {
+      this.checkUserSchedules();
+    });
+
+    logger.info("Scheduler started - status polling (1m) and schedule check (1h)");
   }
 
-  async executePostingCycle() {
-    if (this.isRunning) {
-      logger.warn("Posting cycle already running, skipping...");
-      return;
+  async pollVideoStatuses() {
+    if (this.isPollingRunning) return;
+    this.isPollingRunning = true;
+    try {
+      await AutoPostService.pollVideoStatuses();
+    } catch (error) {
+      logger.error("Video status polling failed:", error);
+    } finally {
+      this.isPollingRunning = false;
     }
+  }
 
-    this.isRunning = true;
+  async checkUserSchedules() {
+    if (this.isCycleRunning) return;
+    this.isCycleRunning = true;
 
     try {
-      logger.info("Starting posting cycle...");
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentAMPM = currentHour >= 12 ? 'PM' : 'AM';
+      const displayHour = (currentHour % 12 || 12).toString().padStart(2, '0');
+      const timeString = `${displayHour}:00 ${currentAMPM}`;
 
-      // Generate new content
-      const topic = await ContentService.getRandomTopic();
-      const content = await ContentService.generateAIContent(topic);
-      const contentHash = ContentService.generateContentHash(content);
+      logger.info(`Checking users scheduled for ${timeString}`);
 
-      // Check for duplicates
-      const existingPost = await Post.findOne({ contentHash });
-      if (existingPost) {
-        logger.info("Duplicate content detected, skipping post creation");
-        return;
+      // Find users scheduled for this hour
+      const users = await User.find({ postingTime: timeString });
+
+      for (const user of users) {
+        try {
+          // Check if user already had a post today
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+
+          const existingPost = await Post.findOne({
+            userId: user._id,
+            createdAt: { $gte: startOfDay }
+          });
+
+          if (!existingPost) {
+            logger.info(`Creating scheduled post for user ${user._id}`);
+            await AutoPostService.createPostForUser(user._id);
+          }
+        } catch (err) {
+          logger.error(`Failed to handle schedule for user ${user._id}:`, err);
+        }
       }
-
-      // Fetch image
-      const image = await ImageService.fetchImage(topic);
-
-      // Create post record
-      const post = new Post({
-        title: topic,
-        content: content,
-        contentHash: contentHash,
-        imageUrl: image.url,
-        imageAlt: image.alt,
-        status: "pending",
-        scheduledFor: new Date(),
-      });
-
-      await post.save();
-
-      // Post to LinkedIn with retry logic
-      await this.postWithRetry(post);
     } catch (error) {
-      logger.error("Posting cycle failed:", error);
+      logger.error("Schedule check cycle failed:", error);
     } finally {
-      this.isRunning = false;
+      this.isCycleRunning = false;
     }
   }
 
   async postWithRetry(post, attempt = 1) {
     try {
+      // If videoUrl is not ready, we can't post yet
+      if (post.heygenVideoId && !post.videoUrl) {
+        logger.warn(`Post ${post._id} waiting for video URL before posting`);
+        return;
+      }
+
       const result = await LinkedInService.postToLinkedIn({
         content: post.content,
-        // content: "Hello I am posting from API",
-        imageUrl: post.imageUrl,
-        imageAlt: post.imageAlt,
+        imageUrl: post.imageUrl || post.videoUrl, // Use videoUrl as "media" if available
+        imageAlt: post.title,
       });
 
       post.status = "success";
@@ -95,7 +112,6 @@ class SchedulerService {
           error
         );
       } else {
-        // Exponential backoff
         const backoffTime = Math.pow(2, attempt) * 1000;
         logger.warn(
           `Post ${post._id} failed on attempt ${attempt}, retrying in ${backoffTime}ms`

@@ -300,7 +300,7 @@ const getOnboardingStatus = async (userId) => {
   const socialCount = await SocialAccount.countDocuments({ userId });
 
   return {
-    isNicheCompleted: !!user.nicheId,
+    isNicheCompleted: !!user.nicheDescription,
     isSocialConnected: socialCount > 0,
     isBankDetailsCompleted: !!(user.bankDetails && user.bankDetails.accountNumber),
   };
@@ -427,20 +427,31 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
 // Update niche
 router.post("/niche", authenticateToken, async (req, res) => {
   try {
-    const { nicheId } = req.body;
-    if (!nicheId) {
-      return res.status(400).json({ message: "Niche ID required" });
+    const { nicheDescription } = req.body;
+    if (!nicheDescription) {
+      return res.status(400).json({ message: "Niche description required" });
     }
 
-    const niche = await Niche.findById(nicheId);
-    if (!niche) {
-      return res.status(404).json({ message: "Niche not found" });
-    }
-
-    await User.findByIdAndUpdate(req.user.id, { nicheId });
+    await User.findByIdAndUpdate(req.user.id, { nicheDescription });
     res.json({ message: "Niche updated successfully" });
   } catch (error) {
     console.error("Niche update error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update posting time
+router.post("/posting-time", authenticateToken, async (req, res) => {
+  try {
+    const { postingTime } = req.body;
+    if (!postingTime) {
+      return res.status(400).json({ message: "Posting time required" });
+    }
+
+    await User.findByIdAndUpdate(req.user.id, { postingTime });
+    res.json({ message: "Posting time updated successfully" });
+  } catch (error) {
+    console.error("Posting time update error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

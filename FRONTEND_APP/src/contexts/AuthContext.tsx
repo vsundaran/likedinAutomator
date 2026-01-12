@@ -15,6 +15,8 @@ interface User {
     fullName: string;
     avatarUrl?: string;
     nicheId?: string | Niche;
+    nicheDescription?: string;
+    postingTime?: string;
     bankDetails?: {
         accountNumber: string;
         ifscCode: string;

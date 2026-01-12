@@ -50,6 +50,15 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  nicheDescription: {
+    type: String,
+    required: false,
+  },
+  postingTime: {
+    type: String, // e.g., "12:00 PM"
+    required: false,
+    default: "09:00 AM",
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

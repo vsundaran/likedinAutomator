@@ -43,9 +43,10 @@ export function Navbar() {
                                 </AppButton>
                             </>
                         ) : (
-                            <AppButton variant="contained" onClick={() => navigate('/dashboard')}>
-                                Dashboard
-                            </AppButton>
+                            // <AppButton variant="contained" onClick={() => navigate('/dashboard')}>
+                            //     Dashboard
+                            // </AppButton>
+                            null
                         )}
                     </Box>
                 </Toolbar>

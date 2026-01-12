@@ -16,7 +16,7 @@ const getPosts = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    const filter = {};
+    const filter = { userId: req.user.id };
 
     if (status) filter.status = status;
     if (startDate || endDate) {
@@ -49,6 +49,7 @@ const getPosts = async (req, res) => {
 
 const getPostStats = async (req, res) => {
   try {
+    const userId = req.user.id;
     const [
       totalPosts,
       successfulPosts,
@@ -56,16 +57,17 @@ const getPostStats = async (req, res) => {
       pendingPosts,
       lastSuccess
     ] = await Promise.all([
-      Post.countDocuments(),
-      Post.countDocuments({ status: 'success' }),
-      Post.countDocuments({ status: 'failed' }),
-      Post.countDocuments({ status: 'pending' }),
-      Post.findOne({ status: 'success' }).sort({ postedAt: -1 })
+      Post.countDocuments({ userId }),
+      Post.countDocuments({ userId, status: 'success' }),
+      Post.countDocuments({ userId, status: 'failed' }),
+      Post.countDocuments({ userId, status: { $in: ['pending', 'processing'] } }),
+      Post.findOne({ userId, status: 'success' }).sort({ postedAt: -1 })
     ]);
 
-    const nextScheduledPost = lastSuccess ?
-      new Date(lastSuccess?.postedAt?.getTime() || Date.now() + 2 * 60 * 60 * 1000) :
-      new Date(Date.now() + 2 * 60 * 60 * 1000);
+    // Calculate next scheduled time based on user preference or fixed interval
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    const nextScheduledPost = user?.postingTime || 'Scheduled';
 
     res.json({
       totalPosts,
@@ -86,57 +88,16 @@ const getPostStats = async (req, res) => {
 
 const createManualPost = async (req, res) => {
   try {
-    const User = require('../models/User');
-    const user = await User.findById(req.user.id).populate('nicheId');
+    const AutoPostService = require('../services/AutoPostService');
+    const post = await AutoPostService.createPostForUser(req.user.id);
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!post) {
+      return res.status(400).json({ message: 'Could not create post. Check your setup.' });
     }
-
-    if (!user.heygenAvatarId) {
-      return res.status(400).json({ message: 'HeyGen Avatar ID not found. Please upload an avatar first.' });
-    }
-
-    const nicheName = user.nicheId ? user.nicheId.name : 'General';
-    const topic = await ContentService.getRandomTopic(user.nicheId?._id);
-    const content = await ContentService.generateAIContent(topic, nicheName);
-    const contentHash = ContentService.generateContentHash(content);
-
-    // Check for duplicates
-    const existingPost = await Post.findOne({ contentHash });
-    if (existingPost) {
-      return res.status(400).json({ message: 'Duplicate content detected' });
-    }
-
-    // Initiate HeyGen Video Generation
-    const HeyGenService = require('../services/HeyGenService');
-    console.log("Generating video with content:", content);
-
-    // Call V2 Video Generation API (Step 7)
-    const videoId = await HeyGenService.generateVideoV2({
-      talking_photo_id: user.heygenTalkingPhotoId,
-      voice_id: user.heygenVoiceId,
-      text: content,
-      title: topic
-    });
-
-    const post = new Post({
-      title: topic,
-      content: content,
-      contentHash: contentHash,
-      heygenVideoId: videoId,
-      status: 'pending',
-      scheduledFor: new Date(),
-    });
-
-    await post.save();
-
-    logger.info(`Manual post created with video initiation: ${post._id}, Video ID: ${videoId}`);
 
     res.status(201).json({
       message: 'Video generation initiated',
-      post,
-      videoId
+      post
     });
   } catch (error) {
     logger.error('Error creating manual post:', error);

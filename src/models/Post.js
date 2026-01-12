@@ -34,9 +34,19 @@ const postSchema = new mongoose.Schema({
   heygenVideoId: {
     type: String
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  platform: {
+    type: String,
+    enum: ['linkedin', 'fb', 'yt', 'all'],
+    default: 'linkedin'
+  },
   status: {
     type: String,
-    enum: ['pending', 'success', 'failed'],
+    enum: ['pending', 'processing', 'success', 'failed'],
     default: 'pending'
   },
   retries: {
